@@ -1,0 +1,23 @@
+Degut al tema sequence cal reemplaçar aquesta expressió regular per SERIAL:
+int4 DEFAULT nextval\(('\w*'::regclass)\) NOT NULL
+int4 DEFAULT nextval([\w\W]*) NOT NULL
+SERIAL
+
+També estaria bé eliminar els DROP TABLE:
+DROP TABLE ([a-z".;_]*)
+
+Canvia:
+)
+WITH (OIDS=FALSE)
+
+;
+per:
+;
+
+Canvia:
+"geometry"
+per:
+"public"."geometry"
+
+SHOW search_path;
+SET search_path TO carto, public;

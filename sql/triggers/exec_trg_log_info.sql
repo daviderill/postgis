@@ -1,0 +1,3 @@
+CREATE TRIGGER "exec_trg_general" BEFORE INSERT OR UPDATE OR DELETE ON "carto"."pos_2"
+FOR EACH ROW
+EXECUTE PROCEDURE "trg_general"('pos2');

@@ -1,0 +1,7 @@
+[2012-10-26 13:58:24 CEST] [] [] [] [00000] 
+   LOG:  el sistema de bases de datos fue apagado en 2012-10-26 13:56:48 CEST
+[2012-10-26 13:58:24 CEST] [] [] [] [00000] 
+   LOG:  el sistema de bases de datos está listo para aceptar conexiones
+[2012-10-26 13:58:24 CEST] [] [] [] [00000] 
+   LOG:  lanzador de autovacuum iniciado
+[2012-10-26 13:58:36 CEST] [gesplan] [roses] [127.0.0.1] [23503] 
