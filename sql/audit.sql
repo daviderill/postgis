@@ -7,7 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS hstore;
 
 -- Create schema for auditing
-CREATE SCHEMA audit;
+CREATE SCHEMA IF NOT EXISTS audit;
 REVOKE ALL ON SCHEMA audit FROM public;
 COMMENT ON SCHEMA audit IS 'Out-of-table audit/history logging tables and trigger functions';
 
@@ -26,8 +26,7 @@ COMMENT ON SCHEMA audit IS 'Out-of-table audit/history logging tables and trigge
 -- you're interested in, into a temporary table where you CREATE any useful
 -- indexes and do your analysis.
 --
-DROP TABLE IF EXISTS audit.logged_actions CASCADE;
-CREATE TABLE audit.logged_actions (
+CREATE TABLE IF NOT EXISTS audit.logged_actions (
     id bigserial primary key,
     schema_name text not null,
     table_name text not null,
@@ -64,8 +63,9 @@ COMMENT ON COLUMN audit.logged_actions.row_data IS 'Record value. Null for state
 COMMENT ON COLUMN audit.logged_actions.changed_fields IS 'New values of fields changed by UPDATE. Null except for row-level UPDATE events.';
 COMMENT ON COLUMN audit.logged_actions.statement_only IS '''t'' if audit event is from an FOR EACH STATEMENT trigger, ''f'' for FOR EACH ROW';
 
+DROP INDEX IF EXISTS audit.logged_actions_relid_idx;
+DROP INDEX IF EXISTS audit.logged_actions_action_idx;
 CREATE INDEX logged_actions_relid_idx ON audit.logged_actions(relid);
-CREATE INDEX logged_actions_action_tstamp_tx_stm_idx ON audit.logged_actions(action_tstamp_stm);
 CREATE INDEX logged_actions_action_idx ON audit.logged_actions(action);
 
 
@@ -77,6 +77,7 @@ DECLARE
     h_old hstore;
     h_new hstore;
     excluded_cols text[] = ARRAY[]::text[];
+	
 BEGIN
 
     IF TG_WHEN <> 'AFTER' THEN
@@ -110,7 +111,7 @@ BEGIN
     
     IF (TG_OP = 'UPDATE' AND TG_LEVEL = 'ROW') THEN
         audit_row.row_data = hstore(OLD.*);
-        audit_row.changed_fields =  (hstore(NEW.*) - audit_row.row_data) - excluded_cols;
+        audit_row.changed_fields = (hstore(NEW.*) - audit_row.row_data) - excluded_cols;
         IF audit_row.changed_fields = hstore('') THEN
             -- All changed fields are ignored. Skip this update.
             RETURN NULL;
@@ -173,6 +174,7 @@ DECLARE
   stm_targets text = 'INSERT OR UPDATE OR DELETE OR TRUNCATE';
   _q_txt text;
   _ignored_cols_snip text = '';
+  
 BEGIN
 
     EXECUTE 'DROP TRIGGER IF EXISTS audit_trigger_row ON ' || target_table;
@@ -203,6 +205,7 @@ END;
 $BODY$
 LANGUAGE 'plpgsql';
 
+
 COMMENT ON FUNCTION audit.audit_table(regclass, boolean, boolean, text[]) IS $BODY$
 Add auditing support to a table.
 
@@ -229,4 +232,27 @@ $BODY$ LANGUAGE 'sql';
 COMMENT ON FUNCTION audit.audit_table(regclass) IS $BODY$
 Add auditing support to the given table. Row-level changes will be logged with full client query text. No cols are ignored.
 $BODY$;
+
+
+-- Function to audit all tables of selected schema
+CREATE OR REPLACE FUNCTION audit.audit_schema(schema_name varchar) RETURNS void AS $BODY$
+DECLARE
+	table_name text;
+    registro  record;
+	
+BEGIN
+  FOR registro IN SELECT * FROM pg_tables WHERE schemaname = schema_name LOOP
+	table_name:= schema_name || '.' || quote_ident(registro.tablename);
+	PERFORM audit.audit_table(table_name, BOOLEAN 't', BOOLEAN 't');
+  END LOOP;
+END;
+$BODY$
+LANGUAGE 'plpgsql';
+
+
+-- (Optional) Grant permission to specific user. 
+-- Uncomment them and replace <username> for _PARAM.USER_
+--GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA audit TO <username>;
+--GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA audit TO <username>;
+--GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA audit TO <username>;
 
