@@ -1,15 +1,7 @@
 -- An audit history is important on most tables. Provide an audit trigger that logs to
 -- a dedicated audit table for the major relations.
---
--- This file should be generic and not depend on application roles or structures,
--- as it's being listed here:
---
---    https://wiki.postgresql.org/wiki/Audit_trigger_91plus    
---
--- This trigger is based on:
+-- This code is generic and not depend on application roles or structures. Is based on:
 --   http://wiki.postgresql.org/wiki/Audit_trigger_91plus
---
--- Should really be converted into a relocatable EXTENSION, with control and upgrade files.
 
 -- Enable extension hstore
 CREATE EXTENSION IF NOT EXISTS hstore;
@@ -22,11 +14,9 @@ COMMENT ON SCHEMA audit IS 'Out-of-table audit/history logging tables and trigge
 --
 -- Audited data. Lots of information is available, it's just a matter of how much
 -- you really want to record. See:
---
 --   http://www.postgresql.org/docs/9.1/static/functions-info.html
 --
--- Remember, every column you add takes up more audit table space and slows audit
--- inserts.
+-- Remember, every column you add takes up more audit table space and slows audit inserts.
 --
 -- Every index you add has a big impact too, so avoid adding indexes to the
 -- audit table unless you REALLY need them. The hstore GIST indexes are
@@ -64,12 +54,12 @@ COMMENT ON COLUMN audit.logged_actions.table_name IS 'Non-schema-qualified table
 COMMENT ON COLUMN audit.logged_actions.relid IS 'Table OID. Changes with drop/create. Get with ''tablename''::regclass';
 COMMENT ON COLUMN audit.logged_actions.user_name IS 'Login / session user whose statement caused the audited event';
 COMMENT ON COLUMN audit.logged_actions.addr IS 'IP address of client that issued query. Null for unix domain socket.';
-COMMENT ON COLUMN audit.logged_actions.query IS 'Top-level query that caused this auditable event. May be more than one statement.';
+COMMENT ON COLUMN audit.logged_actions.transaction_id IS 'Identifier of transaction that made the change. May wrap, but unique paired with action_tstamp_tx.';
 COMMENT ON COLUMN audit.logged_actions.action_tstamp_tx IS 'Transaction start timestamp for tx in which audited event occurred';
 COMMENT ON COLUMN audit.logged_actions.action_tstamp_stm IS 'Statement start timestamp for tx in which audited event occurred';
 COMMENT ON COLUMN audit.logged_actions.action_tstamp_clk IS 'Wall clock time at which audited event''s trigger call occurred';
-COMMENT ON COLUMN audit.logged_actions.transaction_id IS 'Identifier of transaction that made the change. May wrap, but unique paired with action_tstamp_tx.';
 COMMENT ON COLUMN audit.logged_actions.action IS 'Action type; I = insert, D = delete, U = update, T = truncate';
+COMMENT ON COLUMN audit.logged_actions.query IS 'Top-level query that caused this auditable event. May be more than one statement.';
 COMMENT ON COLUMN audit.logged_actions.row_data IS 'Record value. Null for statement-level trigger. For INSERT this is the new tuple. For DELETE and UPDATE it is the old tuple.';
 COMMENT ON COLUMN audit.logged_actions.changed_fields IS 'New values of fields changed by UPDATE. Null except for row-level UPDATE events.';
 COMMENT ON COLUMN audit.logged_actions.statement_only IS '''t'' if audit event is from an FOR EACH STATEMENT trigger, ''f'' for FOR EACH ROW';
@@ -94,7 +84,7 @@ BEGIN
     END IF;
 
     audit_row = ROW(
-        nextval('audit.logged_actions_id_seq'), 			-- id
+        nextval('audit.logged_actions_id_seq'), 	  -- id
         TG_TABLE_SCHEMA::text,                        -- schema_name
         TG_TABLE_NAME::text,                          -- table_name
         TG_RELID,                                     -- relation OID for much quicker searches
@@ -108,7 +98,7 @@ BEGIN
         current_query(),                              -- top-level query or queries (if multistatement) from client
         NULL, NULL,                                   -- row_data, changed_fields
         'f'                                           -- statement_only
-        );
+    );
 
     IF NOT TG_ARGV[0]::boolean IS DISTINCT FROM 'f'::boolean THEN
         audit_row.query = NULL;
