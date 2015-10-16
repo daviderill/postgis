@@ -64,7 +64,7 @@ BEGIN
 		EXECUTE 'ALTER TABLE ' || schema_name || '.' || quote_ident(registro.viewname) || ' OWNER TO ' || quote_ident(new_owner);
 	END LOOP;
 	FOR registro IN SELECT * FROM pg_class WHERE relkind = 'S' LOOP
-		EXECUTE 'ALTER TABLE ' || schema_name || '.' || quote_ident(registro.relname) || ' OWNER TO ' || quote_ident(new_owner);
+		--EXECUTE 'ALTER TABLE ' || schema_name || '.' || quote_ident(registro.relname) || ' OWNER TO ' || quote_ident(new_owner);
 	END LOOP;
 	RETURN TRUE;
 	

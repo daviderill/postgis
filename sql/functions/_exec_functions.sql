@@ -1,6 +1,6 @@
 -- User functions
 SELECT owner_all_tables('<schema>', '<owner>');
-select permission_all_tables('mapserver', 'select');
+SELECT permission_all_tables('mapserver', 'select');
 SELECT permission_schema_tables('derill', 'all', 'SCHEMA_NAME');
 
 -- System functions

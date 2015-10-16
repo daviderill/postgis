@@ -250,9 +250,7 @@ $BODY$
 LANGUAGE 'plpgsql';
 
 
--- (Optional) Grant permission to specific user. 
--- Uncomment them and replace <username> for _PARAM.USER_
---GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA audit TO <username>;
---GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA audit TO <username>;
---GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA audit TO <username>;
+
+-- To audit all the tables of the schema, execute:
+--SELECT audit.audit_schema('SCHEMA_NAME');
 
