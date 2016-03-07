@@ -251,6 +251,17 @@ LANGUAGE 'plpgsql';
 
 
 
+CREATE OR REPLACE VIEW audit.v_audit AS 
+ SELECT logged_actions.action_tstamp_tx,
+    logged_actions.table_name,
+    logged_actions.action,
+    logged_actions.query,
+    logged_actions.row_data,
+    logged_actions.changed_fields
+   FROM audit.logged_actions
+  ORDER BY logged_actions.action_tstamp_tx DESC;
+
+
 -- To audit all the tables of the schema, execute:
 --SELECT audit.audit_schema('SCHEMA_NAME');
 
